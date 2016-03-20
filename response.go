@@ -61,6 +61,7 @@ type AmazonItem struct {
 	ImageSets        []AmazonImageSet `xml:"ImageSets>ImageSet"`
 	ItemAttributes   AmazonItemAttributes
 	OfferSummary     AmazonItemOfferSummary
+	OfferListing     AmazonItemOfferListing  `xml:"Offers>Offer>OfferListing"`
 	EditorialReviews []AmazonEditorialReview `xml:"EditorialReviews>EditorialReview"`
 	BrowseNodes      []AmazonBrowseNode      `xml:"BrowseNodes>BrowseNode"`
 }
@@ -88,6 +89,18 @@ type AmazonItemOfferSummary struct {
 	LowestUsedPrice        AmazonItemPrice
 	LowestNewPrice         AmazonItemPrice
 	LowestCollectiblePrice AmazonItemPrice
+}
+
+type AmazonItemOfferListing struct {
+	Price                  AmazonItemPrice
+	IsEligibleForPrime     bool
+	AvailabilityAttributes AmazonItemAvailabilityAttributes
+}
+
+type AmazonItemAvailabilityAttributes struct {
+	AvailabilityType string
+	MaximumHours     int64
+	MinimumHours     int64
 }
 
 type AmazonItemPrice struct {
