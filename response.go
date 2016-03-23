@@ -93,6 +93,7 @@ type AmazonItemOfferSummary struct {
 
 type AmazonItemOfferListing struct {
 	Price                  AmazonItemPrice
+	SalePrice              AmazonItemPrice
 	IsEligibleForPrime     bool
 	AvailabilityAttributes AmazonItemAvailabilityAttributes
 }
