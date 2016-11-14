@@ -1,6 +1,7 @@
 package amazing
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -137,15 +138,15 @@ func (a *Amazing) MergeParamsWithDefaults(extra url.Values) url.Values {
 
 }
 
-func (a *Amazing) ItemLookup(params url.Values) (*AmazonItemLookupResponse, error) {
+func (a *Amazing) ItemLookup(ctx context.Context, params url.Values) (*AmazonItemLookupResponse, error) {
 
 	var result AmazonItemLookupResponse
-	err := a.Request(params, &result)
+	err := a.Request(ctx, params, &result)
 	return &result, err
 
 }
 
-func (a *Amazing) ItemLookupAsin(asin string, extra url.Values) (*AmazonItemLookupResponse, error) {
+func (a *Amazing) ItemLookupAsin(ctx context.Context, asin string, extra url.Values) (*AmazonItemLookupResponse, error) {
 
 	params := url.Values{
 		"ResponseGroup": []string{"All"},
@@ -160,27 +161,27 @@ func (a *Amazing) ItemLookupAsin(asin string, extra url.Values) (*AmazonItemLook
 		}
 	}
 
-	return a.ItemLookup(params)
+	return a.ItemLookup(ctx, params)
 
 }
 
-func (a *Amazing) ItemSearch(params url.Values) (*AmazonItemSearchResponse, error) {
+func (a *Amazing) ItemSearch(ctx context.Context, params url.Values) (*AmazonItemSearchResponse, error) {
 
 	var result AmazonItemSearchResponse
-	err := a.Request(params, &result)
+	err := a.Request(ctx, params, &result)
 	return &result, err
 
 }
 
-func (a *Amazing) SimilarityLookup(params url.Values) (*AmazonSimilarityLookupResponse, error) {
+func (a *Amazing) SimilarityLookup(ctx context.Context, params url.Values) (*AmazonSimilarityLookupResponse, error) {
 
 	var result AmazonSimilarityLookupResponse
-	err := a.Request(params, &result)
+	err := a.Request(ctx, params, &result)
 	return &result, err
 
 }
 
-func (a *Amazing) Request(params url.Values, result interface{}) error {
+func (a *Amazing) Request(ctx context.Context, params url.Values, result interface{}) error {
 	httpClient := NewTimeoutClient(time.Duration(3*time.Second), time.Duration(3*time.Second))
 	merged := a.MergeParamsWithDefaults(params)
 
@@ -193,6 +194,10 @@ func (a *Amazing) Request(params url.Values, result interface{}) error {
 	r, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return err
+	}
+
+	if ctx != nil {
+		r = r.WithContext(ctx)
 	}
 
 	res, err := httpClient.Do(r)
@@ -215,7 +220,7 @@ func (a *Amazing) Request(params url.Values, result interface{}) error {
 		}
 		if errorResponse.Code == "RequestThrottled" {
 			time.Sleep(time.Second)
-			return a.Request(params, result)
+			return a.Request(ctx, params, result)
 		}
 		return &errorResponse
 	}
