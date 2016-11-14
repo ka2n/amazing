@@ -83,6 +83,7 @@ type AmazonItemAttributes struct {
 	Title     string
 	Brand     string
 	ListPrice AmazonItemPrice
+	EAN       string
 }
 
 type AmazonItemOfferSummary struct {
