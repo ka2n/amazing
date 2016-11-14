@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"hash"
 	"io/ioutil"
@@ -70,6 +69,7 @@ const (
 
 type Amazing struct {
 	Config *AmazingClientConfig
+	Client *http.Client
 }
 
 type AmazingClientConfig struct {
@@ -80,7 +80,11 @@ type AmazingClientConfig struct {
 }
 
 func NewAmazing(domain, tag, access, secret string) (*Amazing, error) {
-	return newAmazing(domain, tag, access, secret)
+	return newAmazing(domain, tag, access, secret, nil)
+}
+
+func NewAmazingWithClient(domain, tag, access, secret string, client *http.Client) (*Amazing, error) {
+	return newAmazing(domain, tag, access, secret, client)
 }
 
 func NewAmazingFromEnv(domain string) (*Amazing, error) {
@@ -95,11 +99,10 @@ func NewAmazingFromEnv(domain string) (*Amazing, error) {
 			"%s: %s\n", envTag, tag, envAccess, access, envSecret, secret)
 	}
 
-	return newAmazing(domain, tag, access, secret)
-
+	return newAmazing(domain, tag, access, secret, nil)
 }
 
-func newAmazing(domain, tag, access, secret string) (*Amazing, error) {
+func newAmazing(domain, tag, access, secret string, client *http.Client) (*Amazing, error) {
 	if d, ok := serviceDomains[domain]; ok {
 		config := &AmazingClientConfig{
 			ServiceDomain:  d,
@@ -107,10 +110,12 @@ func newAmazing(domain, tag, access, secret string) (*Amazing, error) {
 			AWSAccessKeyId: access,
 			AWSSecretKey:   secret,
 		}
-		return &Amazing{config}, nil
-	} else {
-		return nil, errors.New(fmt.Sprintf("Service domain does not exist %v", serviceDomains))
+		if client == nil {
+			client = NewTimeoutClient(time.Duration(3*time.Second), time.Duration(3*time.Second))
+		}
+		return &Amazing{config, client}, nil
 	}
+	return nil, fmt.Errorf("Service domain does not exist %v", serviceDomains)
 }
 
 func (a *Amazing) MergeParamsWithDefaults(extra url.Values) url.Values {
@@ -182,7 +187,6 @@ func (a *Amazing) SimilarityLookup(ctx context.Context, params url.Values) (*Ama
 }
 
 func (a *Amazing) Request(ctx context.Context, params url.Values, result interface{}) error {
-	httpClient := NewTimeoutClient(time.Duration(3*time.Second), time.Duration(3*time.Second))
 	merged := a.MergeParamsWithDefaults(params)
 
 	u := url.URL{
@@ -200,7 +204,7 @@ func (a *Amazing) Request(ctx context.Context, params url.Values, result interfa
 		r = r.WithContext(ctx)
 	}
 
-	res, err := httpClient.Do(r)
+	res, err := a.Client.Do(r)
 	if err != nil {
 		return err
 	}
