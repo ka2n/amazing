@@ -206,21 +206,20 @@ func (a *Amazing) Request(ctx context.Context, params url.Values, result interfa
 
 	res, err := a.Client.Do(r)
 	if err != nil {
-		return err
+		return fmt.Errorf("request, url: %v error: %v", u.String(), err)
 	}
-
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		b, err := ioutil.ReadAll(res.Body)
-
 		if err != nil {
-			return err
+			return fmt.Errorf("read err body: %v", err)
 		}
+
 		var errorResponse AmazonItemLookupErrorResponse
 		err = xml.Unmarshal(b, &errorResponse)
 		if err != nil {
-			return err
+			return fmt.Errorf("unmarshal err: %v, url: %v, status: %v", err, res.Request.URL, res.StatusCode)
 		}
 		if errorResponse.Code == "RequestThrottled" {
 			time.Sleep(time.Second)
@@ -230,13 +229,14 @@ func (a *Amazing) Request(ctx context.Context, params url.Values, result interfa
 	}
 
 	b, err := ioutil.ReadAll(res.Body)
-
 	if err != nil {
-		return err
+		return fmt.Errorf("read body: %v", err)
 	}
 
 	err = xml.Unmarshal(b, result)
-	//ioutil.WriteFile("test.xml", b, 0777)
+	if err != nil {
+		return fmt.Errorf("unmarshal: %v", err)
+	}
 
-	return err
+	return nil
 }
